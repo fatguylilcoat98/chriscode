@@ -117,3 +117,43 @@ def test_run_tests_uses_controlled_test_capability(tmp_path: Path):
     assert result.ok
     assert result.exit_code == 0
     assert "passed" in result.stdout.lower()
+
+def test_task_verification_passes_when_python_tests_pass(tmp_path: Path):
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='fixture'\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_example.py").write_text(
+        "def test_example():\n    assert 2 + 2 == 4\n",
+        encoding="utf-8",
+    )
+
+    workspace = Workspace(tmp_path)
+    verifier = UniversalVerifier(workspace, ToolRunner(workspace))
+    report = verifier.verify_task()
+
+    assert any(
+        check.name == "python_tests" and check.status == "PASS"
+        for check in report.checks
+    )
+
+
+def test_task_verification_fails_when_python_tests_fail(tmp_path: Path):
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='fixture'\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "test_example.py").write_text(
+        "def test_example():\n    assert 2 + 2 == 5\n",
+        encoding="utf-8",
+    )
+
+    workspace = Workspace(tmp_path)
+    verifier = UniversalVerifier(workspace, ToolRunner(workspace))
+    report = verifier.verify_task()
+
+    assert report.verdict == "FAILED"
+    assert any(
+        check.name == "python_tests" and check.status == "FAIL"
+        for check in report.checks
+    )

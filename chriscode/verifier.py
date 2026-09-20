@@ -40,7 +40,7 @@ def verdict_from_checks(checks: list[Check]) -> str:
 
 
 class UniversalVerifier:
-    """Universal verification shell. Evidence, not model confidence, decides."""
+    """Evidence, not model confidence, decides the final verdict."""
 
     def __init__(self, workspace: Workspace, tools: ToolRunner):
         self.workspace = workspace
@@ -82,6 +82,39 @@ class UniversalVerifier:
                 ", ".join(detected),
             ),
         ]
+
+        return VerificationReport(
+            verdict=verdict_from_checks(checks),
+            checks=checks,
+        )
+
+    def verify_task(self) -> VerificationReport:
+        foundation = self.verify_foundation()
+        checks = list(foundation.checks)
+        detected = self.detect()
+
+        if "python" in detected:
+            test_result = self.tools.run_tests()
+
+            checks.append(
+                Check(
+                    "python_tests",
+                    "PASS" if test_result.ok else "FAIL",
+                    (
+                        test_result.stdout
+                        if test_result.ok
+                        else test_result.stderr or test_result.stdout
+                    )[-4000:],
+                )
+            )
+        else:
+            checks.append(
+                Check(
+                    "task_tests",
+                    "UNVERIFIED",
+                    "No supported deterministic test runner detected.",
+                )
+            )
 
         return VerificationReport(
             verdict=verdict_from_checks(checks),
