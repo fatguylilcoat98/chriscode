@@ -52,6 +52,8 @@ class Controller:
         print(f"Verdict: {report.verdict}")
 
     def _execute_tool_decision(self, action: str, arguments: dict) -> ToolResult:
+        if action == "list_files":
+            return self.tools.list_files()
         if action == "read_file":
             path = arguments.get("path")
 
@@ -88,6 +90,7 @@ class Controller:
         self.ledger.save(job)
 
         last_tool_result: dict | None = None
+        history: list[dict] = []
 
         for iteration in range(1, self.settings.max_iterations + 1):
             job.iteration = iteration
@@ -98,6 +101,7 @@ class Controller:
                 "iteration": iteration,
                 "git_status": self.workspace.status(),
                 "last_tool_result": last_tool_result,
+                "history": history[-20:],
             }
 
             decision = self.model.decide(state)
@@ -107,6 +111,16 @@ class Controller:
                 job.input_tokens += decision.usage.input_tokens
                 job.output_tokens += decision.usage.output_tokens
                 job.paid_cost_usd += decision.usage.cost_usd
+
+            decision_event = {
+                "kind": "model_decision",
+                "model": self.model.name,
+                "action": decision.action,
+                "arguments": decision.arguments,
+                "reason": decision.reason,
+            }
+
+            history.append(decision_event)
 
             job.add_event(
                 "model_decision",
@@ -131,7 +145,7 @@ class Controller:
                 )
 
             if decision.action == "stop":
-                report = self.verifier.verify_foundation()
+                report = self.verifier.verify_task()
                 job.status = report.verdict
 
                 job.add_event(
@@ -150,6 +164,7 @@ class Controller:
                 )
 
             if decision.action not in {
+                "list_files",
                 "read_file",
                 "write_file",
                 "run_tests",
@@ -179,6 +194,13 @@ class Controller:
                 "stdout": tool_result.stdout,
                 "stderr": tool_result.stderr,
             }
+
+            history.append(
+                {
+                    "kind": "tool_result",
+                    **last_tool_result,
+                }
+            )
 
             job.add_event("tool_result", last_tool_result)
             self.ledger.save(job)

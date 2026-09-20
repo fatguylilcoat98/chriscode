@@ -77,29 +77,33 @@ You propose exactly ONE action per response.
 
 Allowed actions:
 
-1. read_file
+1. list_files
+   arguments:
+   {}
+
+2. read_file
    arguments:
    {"path": "relative/path"}
 
-2. write_file
+3. write_file
    arguments:
    {
      "path": "relative/path",
      "content": "complete replacement file content"
    }
 
-3. run_tests
+4. run_tests
    arguments:
    {}
 
-4. stop
+5. stop
    arguments:
    {"message": "short completion message"}
 
 Return ONLY valid JSON with exactly this structure:
 
 {
-  "action": "read_file|write_file|run_tests|stop",
+  "action": "list_files|read_file|write_file|run_tests|stop",
   "arguments": {},
   "reason": "brief reason"
 }
@@ -185,6 +189,7 @@ Rules:
             ) from exc
 
         allowed = {
+            "list_files",
             "read_file",
             "write_file",
             "run_tests",

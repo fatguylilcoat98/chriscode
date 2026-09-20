@@ -157,3 +157,32 @@ def test_task_verification_fails_when_python_tests_fail(tmp_path: Path):
         check.name == "python_tests" and check.status == "FAIL"
         for check in report.checks
     )
+
+def test_list_files_exposes_repository_structure(tmp_path: Path):
+    (tmp_path / "shop.py").write_text(
+        "value = 1\n",
+        encoding="utf-8",
+    )
+
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+
+    (tests_dir / "test_shop.py").write_text(
+        "def test_example(): pass\n",
+        encoding="utf-8",
+    )
+
+    cache_dir = tmp_path / "__pycache__"
+    cache_dir.mkdir()
+
+    (cache_dir / "junk.pyc").write_bytes(b"junk")
+
+    workspace = Workspace(tmp_path)
+    tools = ToolRunner(workspace)
+
+    result = tools.list_files()
+
+    assert result.ok
+    assert "shop.py" in result.stdout
+    assert "tests/test_shop.py" in result.stdout
+    assert "__pycache__" not in result.stdout

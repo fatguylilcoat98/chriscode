@@ -30,6 +30,38 @@ class ToolRunner:
 
         return path
 
+    def list_files(self) -> ToolResult:
+        ignored_dirs = {
+            ".git",
+            ".chriscode",
+            ".pytest_cache",
+            "__pycache__",
+            ".venv",
+            "venv",
+            "node_modules",
+        }
+
+        files = []
+
+        for path in self.workspace.root.rglob("*"):
+            if not path.is_file():
+                continue
+
+            relative = path.relative_to(self.workspace.root)
+
+            if any(part in ignored_dirs for part in relative.parts):
+                continue
+
+            files.append(relative.as_posix())
+
+        files.sort()
+
+        return ToolResult(
+            True,
+            0,
+            "\n".join(files[:2000]),
+            "",
+        )
     def read_file(self, relative_path: str, max_chars: int = 20000) -> ToolResult:
         path = self._safe_path(relative_path)
 
