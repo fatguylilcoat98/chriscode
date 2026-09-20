@@ -69,3 +69,36 @@ def test_unknown_project_is_not_verified(tmp_path: Path):
         and check.status == "UNVERIFIED"
         for check in report.checks
     )
+
+def test_write_file_inside_repo(tmp_path: Path):
+    workspace = Workspace(tmp_path)
+    tools = ToolRunner(workspace)
+
+    result = tools.write_file(
+        "src/example.py",
+        "answer = 42\n",
+    )
+
+    assert result.ok
+    assert (tmp_path / "src" / "example.py").read_text(
+        encoding="utf-8"
+    ) == "answer = 42\n"
+
+
+def test_write_file_cannot_escape_repo(tmp_path: Path):
+    workspace = Workspace(tmp_path)
+    tools = ToolRunner(workspace)
+
+    outside = tmp_path.parent / "chriscode_escape_test.txt"
+
+    if outside.exists():
+        outside.unlink()
+
+    result = tools.write_file(
+        "../chriscode_escape_test.txt",
+        "YOU SHOULD NEVER SEE THIS",
+    )
+
+    assert not result.ok
+    assert result.stderr == "Path escapes repository."
+    assert not outside.exists()
