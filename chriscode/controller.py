@@ -72,22 +72,8 @@ class Controller:
 
             return self.tools.write_file(path, content)
 
-        if action == "run_command":
-            command = arguments.get("command")
-
-            if (
-                not isinstance(command, list)
-                or not command
-                or not all(isinstance(part, str) for part in command)
-            ):
-                return ToolResult(
-                    False,
-                    1,
-                    "",
-                    "run_command requires a non-empty list of strings.",
-                )
-
-            return self.tools.run(command)
+        if action == "run_tests":
+            return self.tools.run_tests()
 
         return ToolResult(
             False,
@@ -166,7 +152,7 @@ class Controller:
             if decision.action not in {
                 "read_file",
                 "write_file",
-                "run_command",
+                "run_tests",
             }:
                 job.status = "UNVERIFIED"
                 job.add_event(

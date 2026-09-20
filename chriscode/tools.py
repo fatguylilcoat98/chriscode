@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
+import sys
 
 from .workspace import Workspace
 
@@ -16,7 +17,7 @@ class ToolResult:
 
 
 class ToolRunner:
-    """Deterministic tools. Models request actions; this layer executes them."""
+    """Deterministic tools. Models request capabilities, not arbitrary shell access."""
 
     def __init__(self, workspace: Workspace):
         self.workspace = workspace
@@ -67,7 +68,11 @@ class ToolRunner:
         except OSError as exc:
             return ToolResult(False, 1, "", str(exc))
 
-    def run(self, command: list[str], timeout: int = 120) -> ToolResult:
+    def _run_process(
+        self,
+        command: list[str],
+        timeout: int = 120,
+    ) -> ToolResult:
         try:
             result = subprocess.run(
                 command,
@@ -91,3 +96,9 @@ class ToolRunner:
                 exc.stdout or "",
                 "Command timed out.",
             )
+
+    def run_tests(self, timeout: int = 120) -> ToolResult:
+        return self._run_process(
+            [sys.executable, "-m", "pytest", "-q"],
+            timeout=timeout,
+        )

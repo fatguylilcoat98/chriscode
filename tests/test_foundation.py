@@ -102,3 +102,18 @@ def test_write_file_cannot_escape_repo(tmp_path: Path):
     assert not result.ok
     assert result.stderr == "Path escapes repository."
     assert not outside.exists()
+
+def test_run_tests_uses_controlled_test_capability(tmp_path: Path):
+    (tmp_path / "test_sample.py").write_text(
+        "def test_sample():\n    assert 2 + 2 == 4\n",
+        encoding="utf-8",
+    )
+
+    workspace = Workspace(tmp_path)
+    tools = ToolRunner(workspace)
+
+    result = tools.run_tests()
+
+    assert result.ok
+    assert result.exit_code == 0
+    assert "passed" in result.stdout.lower()
